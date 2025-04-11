@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import desktop from "@/app/assets/desktops.jpg";
 import Link from "next/link";
 
 const steps = [
@@ -30,10 +29,9 @@ export default function HowItWorks() {
         <div className="flex flex-col lg:flex-row items-center justify-between">
           <div className="lg:w-1/2 mb-10 lg:mb-0">
             <Image
-              src={desktop}
+              src={"/desktops.jpg"}
               fetchPriority="low"
               alt="How it works illustration"
-              placeholder="blur"
               width={600}
               height={400}
               className="rounded-lg shadow-xl aspect-video object-cover object-center hover:object-bottom transition-all duration-1000 ease-in-out"
