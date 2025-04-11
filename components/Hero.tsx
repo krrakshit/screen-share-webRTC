@@ -15,12 +15,10 @@ export default function Hero() {
       <div className="container mx-auto flex flex-col items-center justify-center">
         <div className="mb-10 lg:mb-0">
           <h1 className="text-4xl max-w-2xl sm:text-5xl lg:text-6xl font-bold text-transparent mb-4 tracking-tight bg-gradient-to-br from-foreground to-muted-foreground/70 bg-clip-text">
-            Share Your Screen, <span className="text-primary">Connect</span> in
-            Real-Time
+          Start Sharing, <span className="text-primary">Collaborate</span> Live 
           </h1>
           <p className="md:text-xl mb-8 opacity-80">
-            Collaborate seamlessly with our powerful screen sharing and live
-            chat platform.
+          Effortless collaboration with powerful screen sharing and real-time chat.
           </p>
         </div>
         <div className="grid md:grid-cols-2 gap-6 mt-12">
@@ -53,7 +51,7 @@ export default function Hero() {
             </CardHeader>
             <CardContent>
               <Link href="/join">
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full text-red-609">
                   Join Room
                 </Button>
               </Link>

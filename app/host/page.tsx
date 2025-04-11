@@ -87,12 +87,7 @@ export default function HostPage() {
     }
   }, []);
 
-//   const copyRoomId = () => {
-//     navigator.clipboard.writeText(roomId);
-//     toast.success("Room code copied!", {
-//       description: "Share this code with others to let them join your room.",
-//     });
-//   };
+   
 
   const endSession = () => {
     if (activeStream) {
