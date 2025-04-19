@@ -39,11 +39,11 @@ export default function HostPage() {
 
       setPeer(newPeer);
 
-      newPeer.on("open", (id : any) => {
+      newPeer.on("open", (id) => {
         setRoomId(id);
       });
 
-      newPeer.on("connection", (conn : any) => {
+      newPeer.on("connection", (conn) => {
         setViewers((prev) => prev + 1);
 
         conn.on("close", () => {
@@ -86,8 +86,6 @@ export default function HostPage() {
       console.error("Error initializing peer:", error);
     }
   }, []);
-
-   
 
   const endSession = () => {
     if (activeStream) {
@@ -155,7 +153,7 @@ export default function HostPage() {
                       url: shareUrl,
                     });
                   } catch (err) {
-                    // @ts-expect-error error hai
+                    // @ts-expect-error error
                     if (err.name !== "AbortError") {
                       navigator.clipboard.writeText(shareUrl);
                       toast.success("Link copied to clipboard!");
