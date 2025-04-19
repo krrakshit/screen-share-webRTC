@@ -31,16 +31,28 @@ export default function HostPage() {
   const [viewers, setViewers] = useState<number>(0);
   const [hideQR, setHideQR] = useState(false);
   const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
+  const [isStreamActive, setIsStreamActive] = useState(false);
   const router = useRouter();
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+  useEffect(() => {
+    // Check if there was an active stream before refresh
+    const wasStreamActive = localStorage.getItem('isStreamActive') === 'true';
+    setIsStreamActive(wasStreamActive);
+  }, []);
+
   useEffect(() => {
     try {
-      const newPeer = new Peer();
+      // Check if there's an existing room ID in localStorage
+      const savedRoomId = localStorage.getItem('roomId');
+      const newPeer = savedRoomId ? new Peer(savedRoomId) : new Peer();
 
       setPeer(newPeer);
 
       newPeer.on("open", (id) => {
         setRoomId(id);
+        // Save the room ID to localStorage
+        localStorage.setItem('roomId', id);
       });
 
       newPeer.on("connection", (conn) => {
@@ -50,42 +62,60 @@ export default function HostPage() {
           setViewers((prev) => prev - 1);
         });
 
-        toast.info("New viewer connected", {
-          description: "Click to start sharing your screen",
-          duration: Infinity,
-          action: {
-            label: "Start Sharing",
-            onClick: async () => {
-              try {
-                const stream = await navigator.mediaDevices.getDisplayMedia({
-                  video: true,
-                });
-                setActiveStream(stream);
-                const call = newPeer.call(conn.peer, stream);
-
-                stream.getVideoTracks()[0].onended = () => {
-                  call.close();
-                  stream.getTracks().forEach((track) => track.stop());
-                };
-              } catch (err) {
-                console.error("Screen sharing error:", err);
-                toast.error("Screen sharing error", {
-                  description:
-                    "Failed to start screen sharing. Please try again.",
-                });
-              }
+        // If there was an active stream before refresh, reconnect it
+        if (isStreamActive) {
+          toast.info("Reconnecting stream...", {
+            description: "Reconnecting to previous stream",
+          });
+          startScreenShare(conn);
+        } else {
+          toast.info("New viewer connected", {
+            description: "Click to start sharing your screen",
+            duration: Infinity,
+            action: {
+              label: "Start Sharing",
+              onClick: () => startScreenShare(conn),
             },
-          },
-        });
+          });
+        }
       });
 
       return () => {
-        newPeer.destroy();
+        // Don't destroy peer on unmount if stream is active
+        if (!isStreamActive) {
+          newPeer.destroy();
+        }
       };
     } catch (error) {
       console.error("Error initializing peer:", error);
     }
-  }, []);
+  }, [isStreamActive]);
+
+  const startScreenShare = async (conn: any) => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+      });
+      setActiveStream(stream);
+      setIsStreamActive(true);
+      localStorage.setItem('isStreamActive', 'true');
+      
+      const call = peer?.call(conn.peer, stream);
+
+      stream.getVideoTracks()[0].onended = () => {
+        call?.close();
+        stream.getTracks().forEach((track) => track.stop());
+        setActiveStream(null);
+        setIsStreamActive(false);
+        localStorage.setItem('isStreamActive', 'false');
+      };
+    } catch (err) {
+      console.error("Screen sharing error:", err);
+      toast.error("Screen sharing error", {
+        description: "Failed to start screen sharing. Please try again.",
+      });
+    }
+  };
 
   const endSession = () => {
     if (activeStream) {
@@ -100,6 +130,10 @@ export default function HostPage() {
 
     setViewers(0);
     setRoomId("");
+    setIsStreamActive(false);
+    // Clear the room ID and stream state from localStorage when ending the session
+    localStorage.removeItem('roomId');
+    localStorage.removeItem('isStreamActive');
 
     toast.warning("Session ended", {
       description: "Your screen sharing session has been terminated.",
