@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { Monitor, Users, Mic } from "lucide-react";
+import { Monitor, Users } from "lucide-react";
 import Link from "next/link";
 
 export default function Hero() {

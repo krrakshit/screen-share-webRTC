@@ -72,7 +72,7 @@ export default function JoinPage() {
       });
     });
 
-    peer.on("error", (err) => {
+    peer.on("error", () => {
       setIsConnecting(false);
       toast.error("Connection failed", {
         description:
