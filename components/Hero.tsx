@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { Monitor, Users } from "lucide-react";
+import { Monitor, Users, Mic } from "lucide-react";
 import Link from "next/link";
 
 export default function Hero() {
@@ -18,7 +18,7 @@ export default function Hero() {
           Start Sharing, <span className="text-primary">Collaborate</span> Live 
           </h1>
           <p className="md:text-xl mb-8 opacity-80">
-          Effortless collaboration with powerful screen sharing and real-time chat.
+          Effortless collaboration with powerful screen sharing, audio chat, and real-time interaction.
           </p>
         </div>
         <div className="grid md:grid-cols-2 gap-6 mt-12">
@@ -36,6 +36,10 @@ export default function Hero() {
               <Link href="/host">
                 <Button className="w-full">Create Room</Button>
               </Link>
+              <div className="mt-3 flex items-center text-xs text-muted-foreground">
+                <Mic className="h-3 w-3 mr-1" />
+                <span>Includes real-time audio calls</span>
+              </div>
             </CardContent>
           </Card>
 
@@ -55,6 +59,10 @@ export default function Hero() {
                   Join Room
                 </Button>
               </Link>
+              <div className="mt-3 flex items-center text-xs text-muted-foreground">
+                <Mic className="h-3 w-3 mr-1" />
+                <span>Connect via audio for real-time conversation</span>
+              </div>
             </CardContent>
           </Card>
         </div>
