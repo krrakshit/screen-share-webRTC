@@ -17,15 +17,13 @@ import {
   Monitor,
   Share2,
   Users,
-  Mic,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Peer from "peerjs";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { getRoomInfo, updateRoomInfo, clearRoomInfo } from "@/lib/roomCache";
 
 export default function HostPage() {
   const [roomId, setRoomId] = useState<string>("");
@@ -33,162 +31,67 @@ export default function HostPage() {
   const [viewers, setViewers] = useState<number>(0);
   const [hideQR, setHideQR] = useState(false);
   const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
-  const [isStreamActive, setIsStreamActive] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const connectionMap = useRef(new Map<string, any>());
   const router = useRouter();
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-
-  // Initialize room state from cache
   useEffect(() => {
     try {
-      setIsLoading(true);
-      
-      // Get cached room info
-      const cachedInfo = getRoomInfo();
-      
-      if (cachedInfo.roomId) {
-        setRoomId(cachedInfo.roomId);
-        setIsStreamActive(cachedInfo.isStreamActive);
-        if (cachedInfo.viewers !== undefined) {
-          setViewers(cachedInfo.viewers);
-        }
-      }
-      
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Error initializing from cache:", error);
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Initialize or restore peer connection
-  useEffect(() => {
-    if (isLoading) return;
-
-    try {
-      // Use cached roomId or create a new one
-      const savedRoomId = roomId || localStorage.getItem('roomId');
-      const newPeer = savedRoomId ? new Peer(savedRoomId) : new Peer();
+      const newPeer = new Peer();
 
       setPeer(newPeer);
 
       newPeer.on("open", (id) => {
         setRoomId(id);
-        
-        // Update cache with new room ID
-        updateRoomInfo({
-          roomId: id,
-          isStreamActive,
-          viewers
-        }, id);
       });
 
       newPeer.on("connection", (conn) => {
-        // Keep track of connections by ID
-        connectionMap.current.set(conn.peer, conn);
-        
-        // Update viewers count
-        const newViewersCount = viewers + 1;
-        setViewers(newViewersCount);
-        
-        // Update cache
-        updateRoomInfo({
-          viewers: newViewersCount
-        }, roomId);
+        setViewers((prev) => prev + 1);
 
         conn.on("close", () => {
-          // Remove connection from map
-          connectionMap.current.delete(conn.peer);
-          
-          // Update viewers count
-          const newViewersCount = viewers - 1;
-          setViewers(newViewersCount);
-          
-          // Update cache
-          updateRoomInfo({
-            viewers: newViewersCount
-          }, roomId);
+          setViewers((prev) => prev - 1);
         });
 
-        // If there was an active stream before refresh, reconnect it
-        if (isStreamActive) {
-          toast.info("Reconnecting stream...", {
-            description: "Reconnecting to previous stream",
-          });
-          startScreenShare(conn);
-        } else {
-          toast.info("New viewer connected", {
-            description: "Click to start sharing your screen",
-            duration: Infinity,
-            action: {
-              label: "Start Sharing",
-              onClick: () => startScreenShare(conn),
+        toast.info("New viewer connected", {
+          description: "Click to start sharing your screen",
+          duration: Infinity,
+          action: {
+            label: "Start Sharing",
+            onClick: async () => {
+              try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                  video: true,
+                });
+                setActiveStream(stream);
+                const call = newPeer.call(conn.peer, stream);
+
+                stream.getVideoTracks()[0].onended = () => {
+                  call.close();
+                  stream.getTracks().forEach((track) => track.stop());
+                };
+              } catch (err) {
+                console.error("Screen sharing error:", err);
+                toast.error("Screen sharing error", {
+                  description:
+                    "Failed to start screen sharing. Please try again.",
+                });
+              }
             },
-          });
-        }
+          },
+        });
       });
 
       return () => {
-        // Don't destroy peer on unmount if stream is active
-        if (!isStreamActive) {
-          newPeer.destroy();
-        }
+        newPeer.destroy();
       };
     } catch (error) {
       console.error("Error initializing peer:", error);
     }
-  }, [isLoading, roomId, isStreamActive, viewers]);
+  }, []);
 
-  const startScreenShare = async (conn: any) => {
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-      });
-      setActiveStream(stream);
-      setIsStreamActive(true);
-      
-      // Update cache
-      updateRoomInfo({
-        isStreamActive: true
-      }, roomId);
-      
-      // Share with new connection
-      peer?.call(conn.peer, stream);
-      
-      // Also share with all existing connections
-      connectionMap.current.forEach((existingConn, peerId) => {
-        if (peerId !== conn.peer) {
-          peer?.call(peerId, stream);
-        }
-      });
-
-      stream.getVideoTracks()[0].onended = () => {
-        // Close all connections
-        connectionMap.current.forEach((conn) => {
-          try {
-            conn.close();
-          } catch (e) {
-            console.error("Error closing connection:", e);
-          }
-        });
-        
-        // Stop stream
-        stream.getTracks().forEach((track) => track.stop());
-        setActiveStream(null);
-        setIsStreamActive(false);
-        
-        // Update cache
-        updateRoomInfo({
-          isStreamActive: false
-        }, roomId);
-      };
-    } catch (err) {
-      console.error("Screen sharing error:", err);
-      toast.error("Screen sharing error", {
-        description: "Failed to start screen sharing. Please try again.",
-      });
-    }
+  const copyRoomId = () => {
+    navigator.clipboard.writeText(roomId);
+    toast.success("Room code copied!", {
+      description: "Share this code with others to let them join your room.",
+    });
   };
 
   const endSession = () => {
@@ -204,10 +107,6 @@ export default function HostPage() {
 
     setViewers(0);
     setRoomId("");
-    setIsStreamActive(false);
-    
-    // Clear room info from cache
-    clearRoomInfo(roomId);
 
     toast.warning("Session ended", {
       description: "Your screen sharing session has been terminated.",
@@ -215,16 +114,6 @@ export default function HostPage() {
 
     router.push("/");
   };
-
-  // If loading, show skeleton
-  if (isLoading) {
-    return (
-      <div className="max-w-2xl mx-auto space-y-8 flex-1">
-        <div className="h-10 w-32 bg-muted animate-pulse rounded"></div>
-        <div className="h-96 bg-muted animate-pulse rounded-lg"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 flex-1">
@@ -295,34 +184,15 @@ export default function HostPage() {
           </div>
 
           {activeStream && (
-            <>
-              <div className="flex justify-end pt-4">
-                <Button
-                  variant="destructive"
-                  onClick={endSession}
-                  className="flex items-center gap-2"
-                >
-                  Stop sharing
-                </Button>
-              </div>
-              
-              {/* Audio Call Button - Only shown when streaming */}
-              <div className="mt-4 border-t pt-4">
-                <Button
-                  className="w-full flex items-center gap-2"
-                  variant="outline"
-                  onClick={() => {
-                    router.push(`/call?roomId=${roomId}&host=true`);
-                  }}
-                >
-                  <Mic className="size-4" />
-                  Start Audio Call Room
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Allow participants to connect via audio for real-time conversation while sharing your screen.
-                </p>
-              </div>
-            </>
+            <div className="flex justify-end pt-4">
+              <Button
+                variant="destructive"
+                onClick={endSession}
+                className="flex items-center gap-2"
+              >
+                Stop sharing
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

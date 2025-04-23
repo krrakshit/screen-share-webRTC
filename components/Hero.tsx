@@ -37,8 +37,6 @@ export default function Hero() {
                 <Button className="w-full">Create Room</Button>
               </Link>
               <div className="mt-3 flex items-center text-xs text-muted-foreground">
-                <Mic className="h-3 w-3 mr-1" />
-                <span>Includes real-time audio calls</span>
               </div>
             </CardContent>
           </Card>
@@ -60,8 +58,6 @@ export default function Hero() {
                 </Button>
               </Link>
               <div className="mt-3 flex items-center text-xs text-muted-foreground">
-                <Mic className="h-3 w-3 mr-1" />
-                <span>Connect via audio for real-time conversation</span>
               </div>
             </CardContent>
           </Card>
